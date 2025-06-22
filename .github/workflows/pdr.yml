@@ -11,8 +11,8 @@ jobs:
     - name: Download and setup Ngrok
       run: |
         Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Expand-Archive .\ngrok.zip -DestinationPath .
-        .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+        Expand-Archive -Path ngrok.zip -DestinationPath .
+        .\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
 
     - name: Create new admin user and enable RDP
       run: |
@@ -24,14 +24,13 @@ jobs:
 
     - name: Start Ngrok Tunnel
       run: |
-        Start-Process -NoNewWindow -FilePath ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+        Start-Process -NoNewWindow -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389"
 
     - name: Wait and show connection info
       run: |
         Start-Sleep -Seconds 15
-        $url = Invoke-RestMethod -Uri http://localhost:4040/api/tunnels
-        $publicUrl = $url.tunnels.public_url
-        Write-Output "🔗 RDP is ready!"
-        Write-Output "Copy this and use in Remote Desktop Client:"
-        Write-Output $publicUrl
+        $response = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
+        $rdpUrl = $response.tunnels[0].public_url -replace "tcp://", ""
+        Write-Output "🔗 Connect using:"
+        Write-Output "$rdpUrl"
       continue-on-error: true
