@@ -1,32 +1,22 @@
 name: RDP
 
-on:
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-    - name: Download and setup ngrok
-      run: |
-        Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Expand-Archive ngrok.zip -DestinationPath .
-        .\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
+      - name: Download and setup ngrok
+        run: |
+          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip -DestinationPath ngrok
+          .\ngrok\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
+          Generated code
 
-    - name: Enable RDP and Start ngrok
-      run: |
-        net user kamel123 MyStrong123 /add
-        net localgroup administrators kamel123 /add
-        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Start-Process -FilePath "$PWD\ngrok.exe" -ArgumentList "tcp 3389"
-        Start-Sleep -Seconds 25
-        try {
-          $response = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
-          $rdpUrl = $response.tunnels[0].public_url -replace "tcp://", ""
-          Write-Output "✅ RDP is ready!"
-          Write-Output "🔗 Connect using: $rdpUrl"
-        } catch {
-          Write-Error "❌ ngrok did not start or tunnel not found"
-        }
+      - name: Enable RDP
+        run: |
+          net user kamel123 MyStrong123 /add
+          net localgroup administrators kamel123 /add
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          .\ngrok\ngrok.exe tcp 3389
