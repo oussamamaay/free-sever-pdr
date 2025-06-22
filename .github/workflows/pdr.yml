@@ -21,29 +21,31 @@ jobs:
         Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Start Ngrok tunnel in background
-      shell: cmd
-      run: start /b ngrok.exe tcp 3389
+    - name: Start ngrok in background
+      run: |
+        Start-Process -FilePath "$PWD\ngrok.exe" -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 20
+        Write-Output "🔄 Waiting for ngrok to be ready..."
 
-    - name: Wait for ngrok to initialize and get RDP address
-      shell: pwsh
+    - name: Get ngrok RDP URL
       run: |
         $tries = 0
+        $success = $false
+
         do {
           try {
             $response = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
+            $rdpUrl = $response.tunnels[0].public_url -replace "tcp://", ""
+            Write-Output "✅ RDP is ready!"
+            Write-Output "🔗 $rdpUrl"
             $success = $true
           } catch {
             Start-Sleep -Seconds 5
             $tries++
           }
-        } while (-not $success -and $tries -lt 6)
+        } while (-not $success -and $tries -lt 8)
 
         if (-not $success) {
           Write-Error "❌ Failed to connect to Ngrok API after multiple attempts."
           exit 1
         }
-
-        $rdpUrl = $response.tunnels[0].public_url -replace "tcp://", ""
-        Write-Output "✅ RDP is ready! Connect using this address:"
-        Write-Output $rdpUrl
