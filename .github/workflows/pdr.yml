@@ -1,21 +1,37 @@
-name: RDP
+name: RDP via Ngrok
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
-    steps:
-      - name: Download and setup ngrok
-        run: |
-          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip -DestinationPath ngrok
-          .\ngrok\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
 
-      - name: Enable RDP
-        run: |
-          net user kamel123 MyStrong123 /add
-          net localgroup administrators kamel123 /add
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          .\ngrok\ngrok.exe tcp 3389
+    steps:
+    - name: Download and setup Ngrok
+      run: |
+        Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Expand-Archive .\ngrok.zip -DestinationPath .
+        .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+
+    - name: Create new admin user and enable RDP
+      run: |
+        net user kamel123 MyStrong123 /add
+        net localgroup administrators kamel123 /add
+        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Write-Output "✅ User created and RDP enabled."
+
+    - name: Start Ngrok Tunnel
+      run: |
+        Start-Process -NoNewWindow -FilePath ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+
+    - name: Wait and show connection info
+      run: |
+        Start-Sleep -Seconds 15
+        $url = Invoke-RestMethod -Uri http://localhost:4040/api/tunnels
+        $publicUrl = $url.tunnels.public_url
+        Write-Output "🔗 RDP is ready!"
+        Write-Output "Copy this and use in Remote Desktop Client:"
+        Write-Output $publicUrl
+      continue-on-error: true
