@@ -1,4 +1,4 @@
-    - name: Start Ngrok Tunnel (in background)
+    name: RDP via Ngrok
       run: |
         Start-Job -ScriptBlock { .\ngrok.exe tcp 3389 }
         Start-Sleep -Seconds 25
