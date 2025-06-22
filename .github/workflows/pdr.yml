@@ -1,36 +1,26 @@
-name: RDP via Ngrok
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: windows-latest
-
-    steps:
-    - name: Download and setup Ngrok
+    - name: Start Ngrok Tunnel (in background)
       run: |
-        Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Expand-Archive -Path ngrok.zip -DestinationPath .
-        .\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
+        Start-Job -ScriptBlock { .\ngrok.exe tcp 3389 }
+        Start-Sleep -Seconds 25
 
-    - name: Create new admin user and enable RDP
+    - name: Get RDP address from Ngrok
       run: |
-        net user kamel123 MyStrong123 /add
-        net localgroup administrators kamel123 /add
-        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Write-Output "✅ User created and RDP enabled."
+        $tries = 0
+        do {
+          try {
+            $response = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
+            $success = $true
+          } catch {
+            Start-Sleep -Seconds 5
+            $tries++
+          }
+        } while (-not $success -and $tries -lt 6)
 
-    - name: Start Ngrok Tunnel
-      run: |
-        Start-Process -NoNewWindow -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389"
+        if (-not $success) {
+          Write-Error "❌ Failed to connect to Ngrok API after multiple attempts."
+          exit 1
+        }
 
-    - name: Wait and show connection info
-      run: |
-        Start-Sleep -Seconds 15
-        $response = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
         $rdpUrl = $response.tunnels[0].public_url -replace "tcp://", ""
-        Write-Output "🔗 Connect using:"
-        Write-Output "$rdpUrl"
-      continue-on-error: true
+        Write-Output "✅ RDP is ready! Connect using this address:"
+        Write-Output $rdpUrl
