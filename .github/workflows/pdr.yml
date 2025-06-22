@@ -14,19 +14,19 @@ jobs:
         Expand-Archive -Path ngrok.zip -DestinationPath .
         .\ngrok.exe authtoken 2ypH6AmaJTpCGN2UCUkX2yBfQGh_7MAhL9ERgG6mgZTdeLSiY
 
-    - name: Create new admin user and enable RDP
+    - name: Create admin user and enable RDP
       run: |
         net user kamel123 MyStrong123 /add
         net localgroup administrators kamel123 /add
         Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Start Ngrok Tunnel (in background)
-      run: |
-        Start-Job -ScriptBlock { .\ngrok.exe tcp 3389 }
-        Start-Sleep -Seconds 25
+    - name: Start Ngrok tunnel in background
+      shell: cmd
+      run: start /b ngrok.exe tcp 3389
 
-    - name: Get RDP address from Ngrok
+    - name: Wait for ngrok to initialize and get RDP address
+      shell: pwsh
       run: |
         $tries = 0
         do {
