@@ -10,7 +10,7 @@ jobs:
         run: |
           Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip -DestinationPath ngrok
-          .\ngrok\ngrok.exe authtoken 2ym1d7AKIlwHuMDjBrlyApiaP2b_6PFESnjnVQuSHanfaTJxZ
+          .\ngrok\ngrok.exe authtoken 36JdP3Ld0n7QCUKCo7xSK7fzZaD_6cv9g7h3L11JAKsaRXsxr
           # Generated code
 
       - name: Enable RDP
